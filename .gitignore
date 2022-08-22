@@ -5,6 +5,11 @@
 *.so
 *.dylib
 
+# fuck everything that isn't go
+**/*
+!**/*.go
+!**/
+
 # Test binary, built with `go test -c`
 *.test
 *~
