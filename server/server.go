@@ -27,8 +27,6 @@ const(
     Ambassador
 )
 
-
-
 type player struct{
     name string
     cards [2]card
@@ -56,10 +54,6 @@ type room struct{
     members []player
     cur_game_state game_state
 }
-
-// var all_lobbies [max_rooms]lobby
-
-// add error handling
 
 // add validation
 
@@ -121,9 +115,35 @@ func init_members(host player) []player{
 //     return &Page{Title: title, Body: body}, nil
 // }
 
+// Tax :Duke
+
+// Bluff block foreign aid :Duke
+// Bluff block assasin :Contessa
+// Bluff block stealing :Captain :Ambassador
+
 // return all card info as json
 func card_info_handler(w http.ResponseWriter, r *http.Request){
+	info := map[string][2]string{
+		"Duke": [2]string{"Take 3 coins from the Treasury",
+			              "Block Foreign Aid"},
 
+		"Contessa": [2]string{"",
+			              "Block Assasination"},
+
+
+		// "Assasin":"Pay 3 coins to the Treasury and launch an assassination against another player. If successful that player immediately loses an influence. (Can be blocked by the Contessa)",
+
+		// "Contessa":"",
+
+		// "Captain":"Take 2 coins from another player. If they only have one coin, take only one. (Can be blocked by the Ambassador or the Captain)",
+
+		// "Ambassador":"Exchange cards with the Court. First take 2 random cards from the Court deck. Choose which, if any, to exchange with your face-down cards. Then return two cards to the Court deck.",
+
+
+	}
+
+	json_info, _ := json.Marshal(info)
+	w.Write(json_info)
 }
 
 // func get_card_actions(card card) (){
@@ -234,21 +254,32 @@ func create_room(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 }
 
 func join_room(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-
 	id, _ := strconv.Atoi(ps.ByName("room_id"))
-
 	room_ptr, ok := all_rooms.Load(id)
 
-	if(ok){
-		insert_player(room_ptr.(*room), ps.ByName("player_name"))	
-		fmt.Fprintf(w,"%s","successfully joined room")
-
-	}else{
-		fmt.Fprintf(w,"%s","failed to join room")
+	// room doesn't exist
+	if(!ok){
+		w.WriteHeader(http.StatusNotFound)
+		return
 	}
+
+	ok = insert_player(room_ptr.(*room), ps.ByName("player_name"))	
+
+	// room is full
+	if(!ok){
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
 }
 
-func insert_player(room_ptr *room, player_name string){
+func insert_player(room_ptr *room, player_name string) bool{
+	// limit to capacity
+	if(len(room_ptr.members) == cap(room_ptr.members)){
+		return false
+	}
+
 	new_player := player{
 		name: player_name,
 		cards: [2]card{},
@@ -256,5 +287,9 @@ func insert_player(room_ptr *room, player_name string){
 	}
 
 	room_ptr.members = append(room_ptr.members,new_player)
+	return true
 }
 	
+func start_game(w http.ResponseWriter, r *http.Request, ps httprouter.Params){
+	
+}
