@@ -267,7 +267,7 @@ func join_room(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 
 	// room is full
 	if(!ok){
-		w.WriteHeader(http.StatusNotFound)
+		w.WriteHeader(http.StatusConflict)
 		return
 	}
 
