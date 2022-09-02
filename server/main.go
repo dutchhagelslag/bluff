@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
     "strconv"
 	"fmt"
 	"bluff/server/spinner"
@@ -56,27 +55,28 @@ func test(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 }
 
 func create_room(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	w.Header().Set("Content-Type","application/json")
-	w.WriteHeader(http.StatusCreated)
-
 	room_id := global_id_get()
 	host_name := ps.ByName("player_name")
 
-	// new room make, assume unique
-	all_rooms.Store(room_id, init_room(host_name, room_id))
+	new_room := init_room(host_name, room_id)
 
-	// package room id for sending
-	resp := make(map[string]string)
-	resp["room_id"] = strconv.Itoa(room_id)
+	// setup player connection //
+	conn, err := upgrader.Upgrade(w, r, nil)
 
-	json_resp, err := json.Marshal(resp)
-
-	if(err != nil){
-		log.Fatalf("Failed JSON marshal")
+	if err != nil {
+		log.Println(err)
+		return
 	}
 
-	w.Write(json_resp)
-	print_rooms()
+	client := &Client{hub: new_room.hub, conn: conn, send: make(chan []byte, 256)}
+	client.hub.register <- client
+
+	// Allow collection of memory referenced by the caller by doing all work in
+	// new goroutines.
+	go client.writePump()
+	go client.readPump()
+	// setup player connection //
+
 	return
 }
 
@@ -113,6 +113,8 @@ func join_room(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	}
 
 	room_ptr.members = append(room_ptr.members,new_player)
+
+	player_connection(room_ptr.hub, w, r)
 
 	w.WriteHeader(http.StatusOK)
 	print_rooms()

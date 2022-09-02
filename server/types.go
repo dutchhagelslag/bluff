@@ -16,6 +16,7 @@ type room struct{
     members []player
     id int
     turn int
+    hub *Hub
     deck map[card]int
 }
 

@@ -80,12 +80,12 @@ func init_room(host_name string, room_id int) *room{
 		turn: 0,
 		id: room_id,
 		deck: init_deck(),
+		hub: newHub(),
 	}
 }
 
 func init_game(lobby *room){
 	// change mode of hub
-	//
 	draw_cards(lobby)
 	lobby.turn += 1
 }
@@ -116,11 +116,9 @@ func card_to_str(card card) string{
 	return ""
 }
 
-// all important debug tools
+// all important debug print
 func print_rooms(){
 	m := map[int]interface{}{}
-
-
 
 	all_rooms.Range(func(key, value interface{}) bool {
 		body := value.(*room)
