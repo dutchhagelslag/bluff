@@ -19,9 +19,7 @@ func remove_player(remove_name string, lobby *room){
 		}
 
 		// for hub, read pump, and write pump
-		for i:=0; i<3; i++ {
-			del_room.(*room).hub.off <- []byte("off")
-		}
+		del_room.(*room).hub.broadcast <- []byte("kill-all")
 
 		all_rooms.Delete(lobby.id)
 		return

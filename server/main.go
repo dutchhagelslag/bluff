@@ -69,14 +69,13 @@ func create_room(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	new_room := init_room(host_name, room_id)
 	all_rooms.Store(room_id, new_room)
 
-	start_pumps(conn, new_room.hub)
+	init_client(conn, new_room.hub)
 
 	print_rooms("create room")
 	return
 }
 
 func join_room(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-
 	player_name := ps.ByName("player_name")
 
 	id, _ := strconv.Atoi(ps.ByName("room_id"))
@@ -103,6 +102,13 @@ func join_room(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		return
 	}
 
+	conn, err := upgrader.Upgrade(w, r, nil)
+
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
 	new_player := player{
 		name: player_name,
 		cards: [2]card{},
@@ -112,6 +118,9 @@ func join_room(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	room_ptr.members = append(room_ptr.members,new_player)
 
 	w.WriteHeader(http.StatusOK)
+
+	init_client(conn, room_ptr.hub)
+
 	print_rooms("join_room")
 }
 

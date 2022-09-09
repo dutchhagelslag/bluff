@@ -41,7 +41,6 @@ type Client struct {
 	// Buffered channel of outbound messages.
 	send chan []byte
 
-	off chan []byte
 }
 
 // readPump pumps messages from the websocket connection to the hub.
@@ -49,7 +48,7 @@ type Client struct {
 // The application runs readPump in a per-connection goroutine. The application
 // ensures that there is at most one reader on a connection by executing all
 // reads from this goroutine.
-func (c *Client) readPump(off chan []byte) {
+func (c *Client) readPump() {
 	defer func() {
 		c.hub.unregister <- c
 		c.conn.Close()
@@ -58,21 +57,15 @@ func (c *Client) readPump(off chan []byte) {
 	c.conn.SetReadDeadline(time.Now().Add(pongWait))
 	c.conn.SetPongHandler(func(string) error { c.conn.SetReadDeadline(time.Now().Add(pongWait)); return nil })
 	for {
-		select{
-			case <-off:
-				return
-
-			default:
-			_, message, err := c.conn.ReadMessage()
-			if err != nil {
-				if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-					log.Printf("error: %v", err)
-				}
-				break
+		_, message, err := c.conn.ReadMessage()
+		if err != nil {
+			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
+				log.Printf("error: %v", err)
 			}
-			message = bytes.TrimSpace(bytes.Replace(message, newline, space, -1))
-			c.hub.broadcast <- message
+			break
 		}
+		message = bytes.TrimSpace(bytes.Replace(message, newline, space, -1))
+		c.hub.broadcast <- message
 	}
 }
 
@@ -81,7 +74,7 @@ func (c *Client) readPump(off chan []byte) {
 // A goroutine running writePump is started for each connection. The
 // application ensures that there is at most one writer to a connection by
 // executing all writes from this goroutine.
-func (c *Client) writePump(off chan []byte) {
+func (c *Client) writePump() {
 	ticker := time.NewTicker(pingPeriod)
 	defer func() {
 		ticker.Stop()
@@ -89,9 +82,6 @@ func (c *Client) writePump(off chan []byte) {
 	}()
 	for {
 		select {
-		case <-off:
-			return
-
 		case message, ok := <-c.send:
 			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
 			if !ok {
@@ -125,11 +115,11 @@ func (c *Client) writePump(off chan []byte) {
 	}
 }
 
-func start_pumps(conn *websocket.Conn, hub *Hub) {
+func init_client(conn *websocket.Conn, hub *Hub) {
 	client := &Client{hub: hub, conn: conn, send: make(chan []byte, 256)}
 	client.hub.register <- client
 	// Allow collection of memory referenced by the caller by doing all work in
 	// new goroutines.
-	go client.writePump(hub.off)
-	go client.readPump(hub.off)
+	go client.writePump()
+	go client.readPump()
 }

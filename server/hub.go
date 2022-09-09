@@ -2,10 +2,10 @@ package main
 
 import(
 	"strconv"
+	"bytes"
 )
 
 type Hub struct {
-	off chan []byte
 	clients map[*Client]bool
 	broadcast chan []byte
 	register chan *Client
@@ -15,7 +15,6 @@ type Hub struct {
 
 func newHub(room_id int) *Hub {
 	return &Hub{
-		off: make(chan []byte),
 		room_id: room_id,
 		broadcast:  make(chan []byte),
 		register:   make(chan *Client),
@@ -27,13 +26,6 @@ func newHub(room_id int) *Hub {
 func (h *Hub) run() {
 	for {
 		select {
-
-		// close hub and all players
-		case <-h.off:
-			for client := range h.clients {
-				client.off <- []byte("off")
-			}
-			return
 
 		case client := <-h.register:
 			h.clients[client] = true
@@ -47,12 +39,21 @@ func (h *Hub) run() {
 
 		case message := <-h.broadcast:
 			for client := range h.clients {
-				select {
-				case client.send <- message:
-				default:
+				if bytes.Compare(message, []byte("kill-all")) == 0 {
 					close(client.send)
 					delete(h.clients, client)
+				}else{
+					select {
+					case client.send <- message:
+					default:
+						close(client.send)
+						delete(h.clients, client)
+					}
 				}
+			}
+
+			if bytes.Compare(message, []byte("kill-all")) == 0 {
+				return
 			}
 		}
 	}
