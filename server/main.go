@@ -39,7 +39,7 @@ func rm(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 
 	remove_player(p, room_ptr)
 
-	print_rooms()
+	print_rooms("rm")
 	return
 }
 
@@ -50,16 +50,11 @@ func test(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 
 	draw_cards(room_ptr)
 
-	print_rooms()
+	print_rooms("test")
 	return
 }
 
 func create_room(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	room_id := global_id_get()
-	host_name := ps.ByName("player_name")
-
-	new_room := init_room(host_name, room_id)
-
 	// setup player connection //
 	conn, err := upgrader.Upgrade(w, r, nil)
 
@@ -68,15 +63,15 @@ func create_room(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		return
 	}
 
-	client := &Client{hub: new_room.hub, conn: conn, send: make(chan []byte, 256)}
-	client.hub.register <- client
+	room_id := global_id_get()
+	host_name := ps.ByName("player_name")
 
-	// Allow collection of memory referenced by the caller by doing all work in
-	// new goroutines.
-	go client.writePump()
-	go client.readPump()
-	// setup player connection //
+	new_room := init_room(host_name, room_id)
+	all_rooms.Store(room_id, new_room)
 
+	start_pumps(conn, new_room.hub)
+
+	print_rooms("create room")
 	return
 }
 
@@ -85,14 +80,16 @@ func join_room(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	player_name := ps.ByName("player_name")
 
 	id, _ := strconv.Atoi(ps.ByName("room_id"))
+
 	room_void, ok := all_rooms.Load(id)
-	room_ptr := room_void.(*room)
 
 	// room doesn't exist
 	if(!ok){
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
+
+	room_ptr := room_void.(*room)
 
 	// room is full
 	if(len(room_ptr.members) == cap(room_ptr.members)){
@@ -114,13 +111,9 @@ func join_room(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 
 	room_ptr.members = append(room_ptr.members,new_player)
 
-	player_connection(room_ptr.hub, w, r)
-
 	w.WriteHeader(http.StatusOK)
-	print_rooms()
+	print_rooms("join_room")
 }
-
-
 
 func start_game(w http.ResponseWriter, r *http.Request, ps httprouter.Params){
 	id, _ := strconv.Atoi(ps.ByName("room_id"))
@@ -142,7 +135,6 @@ func start_game(w http.ResponseWriter, r *http.Request, ps httprouter.Params){
 
 
 	// todo setup websockets with players
-
-	print_rooms()
+	print_rooms("start game")
 }
 

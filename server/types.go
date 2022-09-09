@@ -24,6 +24,5 @@ type player struct{
     name string
     cards [2]card
     coins int
-	// member_of *room
-	// websocket connection -> when disconnected remove()
+	in_room *room
 }

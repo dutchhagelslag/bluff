@@ -12,6 +12,17 @@ import (
 func remove_player(remove_name string, lobby *room){
 	// delete room if last player
 	if(len(lobby.members) == 1){
+		del_room, ok := all_rooms.Load(lobby.id)
+
+		if !ok{
+			return
+		}
+
+		// for hub, read pump, and write pump
+		for i:=0; i<3; i++ {
+			del_room.(*room).hub.off <- []byte("off")
+		}
+
 		all_rooms.Delete(lobby.id)
 		return
 	}
@@ -75,12 +86,15 @@ func init_room(host_name string, room_id int) *room{
 		coins: 2,
 	}
 
+	new_hub := newHub(room_id)
+	go new_hub.run()
+
 	return &room{
 		members: members_init,
 		turn: 0,
 		id: room_id,
 		deck: init_deck(),
-		hub: newHub(),
+		hub: new_hub,
 	}
 }
 
@@ -117,7 +131,10 @@ func card_to_str(card card) string{
 }
 
 // all important debug print
-func print_rooms(){
+func print_rooms(action string){
+	fmt.Println("======================================================================")
+	fmt.Println(action)
+
 	m := map[int]interface{}{}
 
 	all_rooms.Range(func(key, value interface{}) bool {
@@ -155,7 +172,7 @@ func print_rooms(){
 
 	b, _ := json.MarshalIndent(m, "", " ")
 	fmt.Println(string(b))
-
+	fmt.Println("======================================================================")
 }
 
 
