@@ -34,9 +34,15 @@ func rm(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	id, _ := strconv.Atoi(ps.ByName("room_id"))
 	p := ps.ByName("player_name")
 
-	room_void, _ := all_rooms.Load(id)
+	room_void, ok := all_rooms.Load(id)
+	if !ok {
+		fmt.Println("Failed to find room")
+		return
+	}
 	room_ptr := room_void.(*room)
 
+	fmt.Println(room_ptr.id)
+	fmt.Println(p)
 	remove_player(p, room_ptr)
 
 	print_rooms("rm")

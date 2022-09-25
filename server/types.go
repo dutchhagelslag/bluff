@@ -24,5 +24,5 @@ type player struct{
     name string
     cards [2]card
     coins int
-	in_room *room
+    client *Client
 }

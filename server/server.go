@@ -10,16 +10,10 @@ import (
 
 // assume non malicous players for now
 func remove_player(remove_name string, lobby *room){
-	// delete room if last player
+	// delete lobby if last player
 	if(len(lobby.members) == 1){
-		del_room, ok := all_rooms.Load(lobby.id)
-
-		if !ok{
-			return
-		}
-
 		// for hub, read pump, and write pump
-		del_room.(*room).hub.broadcast <- []byte("kill-all")
+		lobby.hub.broadcast <- []byte("kill-all")
 
 		all_rooms.Delete(lobby.id)
 		return
@@ -29,8 +23,13 @@ func remove_player(remove_name string, lobby *room){
 		player := lobby.members[i]
 		fmt.Println(player.name)
 
-
 		if(player.name == remove_name){
+			// remove from hub's client list
+			delete(lobby.hub.clients, player.client)
+
+			// delete their pumps
+			close(player.client.send)
+
 			// shift everyone
 			lobby.members = append(lobby.members[:i], lobby.members[i+1:] ...)
 			return
