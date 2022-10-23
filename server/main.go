@@ -13,7 +13,6 @@ import (
 var all_rooms sync.Map
 
 func main(){
-	fmt.Println("hi")
     health_check := make(chan string)
 
     go spinner.Spin(health_check)
@@ -32,18 +31,20 @@ func main(){
 
 func rm(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	id, _ := strconv.Atoi(ps.ByName("room_id"))
-	p := ps.ByName("player_name")
+	player := ps.ByName("player_name")
 
 	room_void, ok := all_rooms.Load(id)
 	if !ok {
 		fmt.Println("Failed to find room")
 		return
 	}
-	room_ptr := room_void.(*room)
 
-	fmt.Println(room_ptr.id)
-	fmt.Println(p)
-	remove_player(p, room_ptr)
+	room := room_void.(*Room)
+
+	fmt.Println(room.id)
+	fmt.Println(player)
+
+	room.remove(player)
 
 	print_rooms("rm")
 	return
@@ -52,7 +53,7 @@ func rm(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 func test(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	id, _ := strconv.Atoi(ps.ByName("room_id"))
 	room_void, _ := all_rooms.Load(id)
-	room_ptr := room_void.(*room)
+	room_ptr := room_void.(*Room)
 
 	draw_cards(room_ptr)
 
@@ -72,61 +73,44 @@ func create_room(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	room_id := global_id_get()
 	host_name := ps.ByName("player_name")
 
-	new_room := init_room(host_name, room_id)
-	all_rooms.Store(room_id, new_room)
+	new_room := init_room(room_id)
+	new_player := init_player(host_name, conn)
 
-	init_client(conn, new_room.hub)
+	new_room.add(new_player)
 
 	print_rooms("create room")
 	return
 }
 
 func join_room(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	player_name := ps.ByName("player_name")
-
 	id, _ := strconv.Atoi(ps.ByName("room_id"))
 
 	room_void, ok := all_rooms.Load(id)
 
-	// room doesn't exist
-	if(!ok){
+	if !ok{
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
+	room := room_void.(*Room)
 
-	room_ptr := room_void.(*room)
-
-	// room is full
-	if(len(room_ptr.members) == cap(room_ptr.members)){
-		w.WriteHeader(http.StatusConflict)
-		return
-	}
-
-	// game has already started
-	if(room_ptr.turn != 0){
-		w.WriteHeader(http.StatusConflict)
-		return
-	}
 
 	conn, err := upgrader.Upgrade(w, r, nil)
-
 	if err != nil {
 		log.Println(err)
 		return
 	}
 
-	new_player := player{
-		name: player_name,
-		cards: [2]card{},
-		coins: 2,
-	}
+	player_name := ps.ByName("player_name")
 
-	room_ptr.members = append(room_ptr.members,new_player)
+	new_player := init_player(player_name, conn)
+
+	room.add(new_player)
+	// if err := room.add_member(new_player); err != nil{
+	// 	w.WriteHeader(http.StatusConflict)
+	// 	return
+	// }
 
 	w.WriteHeader(http.StatusOK)
-
-	init_client(conn, room_ptr.hub)
-
 	print_rooms("join_room")
 }
 
@@ -134,7 +118,7 @@ func start_game(w http.ResponseWriter, r *http.Request, ps httprouter.Params){
 	id, _ := strconv.Atoi(ps.ByName("room_id"))
 
 	room_void, ok := all_rooms.Load(id)
-	room_ptr := room_void.(*room)
+	room_ptr := room_void.(*Room)
 
 	// todo: verify host
 	// host_name := ps.ByName("host_name")

@@ -5,7 +5,21 @@ import (
 	"log"
 	"time"
 	"github.com/gorilla/websocket"
+
 )
+
+type Player struct {
+	room *Room
+
+	conn *websocket.Conn
+	// send chan RoomReq
+	send chan []byte
+
+    cards [2]Card
+
+    name string
+    coins int
+}
 
 const (
 	// Time allowed to write a message to the peer.
@@ -31,34 +45,52 @@ var upgrader = websocket.Upgrader{
 	WriteBufferSize: 1024,
 }
 
-// Client is a middleman between the websocket connection and the hub.
-type Client struct {
+func init_player(name string, conn *websocket.Conn) *Player{
+	new_player := &Player{
+		room: nil,
+		conn: conn,
+		send: make(chan []byte),
+		// send: make(chan RoomReq),
+		name: name,
+		cards: [2]Card{},
+		coins: 2,
+	}
+	// Allow collection of memory referenced by the caller by doing all work in
+	// new goroutines.
+	go new_player.writePump()
+	go new_player.readPump()
 
-	hub *Hub
+	return new_player
+}
 
-	// The websocket connection.
-	conn *websocket.Conn
 
-	// Buffered channel of outbound messages.
-	send chan []byte
+func (player *Player) lose_card(lost_card Card){
 
 }
+
+func (player *Player) is_alive() bool{
+	return (player.cards[0] != Dead) && (player.cards[1] != Dead)
+}
+
+
 
 // readPump pumps messages from the websocket connection to the hub.
 //
 // The application runs readPump in a per-connection goroutine. The application
 // ensures that there is at most one reader on a connection by executing all
 // reads from this goroutine.
-func (c *Client) readPump() {
+func (player *Player) readPump() {
 	defer func() {
-		c.hub.unregister <- c
-		c.conn.Close()
+		player.room.remove(player.name)
+		player.conn.Close()
 	}()
-	c.conn.SetReadLimit(maxMessageSize)
-	c.conn.SetReadDeadline(time.Now().Add(pongWait))
-	c.conn.SetPongHandler(func(string) error { c.conn.SetReadDeadline(time.Now().Add(pongWait)); return nil })
+
+	player.conn.SetReadLimit(maxMessageSize)
+	player.conn.SetReadDeadline(time.Now().Add(pongWait))
+	player.conn.SetPongHandler(func(string) error { player.conn.SetReadDeadline(time.Now().Add(pongWait)); return nil })
+
 	for {
-		_, message, err := c.conn.ReadMessage()
+		_, message, err := player.conn.ReadMessage()
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
 				log.Printf("error: %v", err)
@@ -66,7 +98,7 @@ func (c *Client) readPump() {
 			break
 		}
 		message = bytes.TrimSpace(bytes.Replace(message, newline, space, -1))
-		c.hub.broadcast <- message
+		player.room.recieve <- message
 	}
 }
 
@@ -75,52 +107,48 @@ func (c *Client) readPump() {
 // A goroutine running writePump is started for each connection. The
 // application ensures that there is at most one writer to a connection by
 // executing all writes from this goroutine.
-func (c *Client) writePump() {
+func (player *Player) writePump() {
 	ticker := time.NewTicker(pingPeriod)
 	defer func() {
 		ticker.Stop()
-		c.conn.Close()
+		player.room.remove(player.name)
+		player.conn.Close()
 	}()
 	for {
 		select {
-		case message, ok := <-c.send:
-			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
+		case message, ok := <-player.send:
+			player.conn.SetWriteDeadline(time.Now().Add(writeWait))
 			if !ok {
-				// The hub closed the channel.
-				c.conn.WriteMessage(websocket.CloseMessage, []byte{})
+				// Players been kicked
+				player.conn.WriteMessage(websocket.CloseMessage, []byte{})
 				return
 			}
 
-			w, err := c.conn.NextWriter(websocket.TextMessage)
+			w, err := player.conn.NextWriter(websocket.TextMessage)
 			if err != nil {
 				return
 			}
 			w.Write(message)
 
 			// Add queued chat messages to the current websocket message.
-			n := len(c.send)
+			n := len(player.send)
 			for i := 0; i < n; i++ {
 				w.Write(newline)
-				w.Write(<-c.send)
+				w.Write(<-player.send)
 			}
 
 			if err := w.Close(); err != nil {
 				return
 			}
+
 		case <-ticker.C:
-			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
-			if err := c.conn.WriteMessage(websocket.PingMessage, nil); err != nil {
+			player.conn.SetWriteDeadline(time.Now().Add(writeWait))
+			if err := player.conn.WriteMessage(websocket.PingMessage, nil); err != nil {
 				return
 			}
+
 		}
 	}
 }
 
-func init_client(conn *websocket.Conn, hub *Hub) {
-	client := &Client{hub: hub, conn: conn, send: make(chan []byte, 256)}
-	client.hub.register <- client
-	// Allow collection of memory referenced by the caller by doing all work in
-	// new goroutines.
-	go client.writePump()
-	go client.readPump()
-}
+
