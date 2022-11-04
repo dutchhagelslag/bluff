@@ -1,7 +1,8 @@
 package main
 
 import (
-	// "encoding/json"
+	"encoding/json"
+	"errors"
     // "fmt"
     "time"
 	// "strconv"
@@ -55,20 +56,33 @@ func init_deck() map[Card]int{
 	}
 }
 
-func card_to_str(card Card) string{
+// Mashalls
+func (card Card) MarshalJSON() ([]byte, error) {
+	return json.Marshal(card.String())
+}
+
+// Stringer
+func (card Card) String() string{
 	switch card{
 		case Dead:
-			return "Dead"
+     		return "Dead"
+
 		case Duke:
-			return "Duke"
+		    return "Duke"
+
 		case Captain:
-			return "Captain"
+		    return "Captain"
+
 		case Ambassador:
-			return "Ambassador"
+		    return "Ambassador"
+
 		case Contessa:
-			return "Contessa"
+		    return "Contessa"
+
 		case Assasin:
 			return "Assasin"
+
+		default:
+		    return ""
 	}
-	return ""
 }

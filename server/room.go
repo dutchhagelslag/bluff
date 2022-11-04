@@ -6,6 +6,7 @@ import(
 	// "bytes"
 	"errors"
 	"sync"
+	"encoding/json"
 )
 
 type Room struct{
@@ -15,10 +16,14 @@ type Room struct{
     deck map[Card]int
 
 	join chan *Player
+
 	// recieve chan PlayerResp
-	recieve chan []byte
+	receive chan []byte
 
 	members_mut sync.Mutex
+
+	// lobby, ingame, get-action, get-bluff-call
+	state string
 }
 
 // make a new room
@@ -29,8 +34,8 @@ func init_room(room_id int) *Room{
 		id: room_id,
 		deck: init_deck(),
 		join:  make(chan *Player),
-		recieve: make(chan []byte),
-		// recieve:   make(chan PlayerResp),
+		receive: make(chan []byte),
+		state: "lobby",
 		members_mut: sync.Mutex{},
 	}
 
@@ -65,7 +70,6 @@ func (room *Room) add(player *Player) error{
 	return nil
 }
 
-
 // assume non malicous players for now
 func (room *Room) remove(remove_name string){
 
@@ -93,6 +97,16 @@ func (room *Room) remove(remove_name string){
 	}
 }
 
+func (room *Room) get_player(name string) *Player{
+	for _, member := range room.members {
+		if member.name == name{
+			return member
+		}
+	}
+	return nil
+}
+
+
 // func (room *Room) broadcast_state(){
 // 	for player := range room.members{
 // 		player.send <- game_state
@@ -112,7 +126,53 @@ func (room *Room) run() {
 	}
 }
 
-func (room *Room) announce(msg string){
+// lobby stage ========================
+
+func (room *Room) run_lobby() {
+	for {
+		if(room.is_room_rdy()){
+			room.announce("Game Start")
+			return
+		}
+
+		room.ready_up(<-room.receive)
+		room.announce()
+	}
+}
+
+func (room *Room) is_room_rdy() bool{
+	for _, member := range room.members{
+		if !member.rdy{
+			return false
+		}
+	}
+
+	// I wont let you play alone
+	if len(room.members) == 1 {
+		return false
+	}
+
+	return true
+}
+
+func (room *Room) ready_up(player_name []byte){
+	name := string(player_name)
+
+	if name[0] == '!'{
+		room.get_player(name[1:]).rdy = false
+	}else{
+		room.get_player(name).rdy = true
+	}
+}
+
+// ===================================
+
+
+
+
+// game stage ========================
+
+func (room *Room) announce(msg []byte){
 	for i := range room.members {
 		room.members[i].send <- msg
 	}
@@ -120,115 +180,98 @@ func (room *Room) announce(msg string){
 
 func (room *Room) run_game() *Player{
 
-	for {
-		num_alive := room.run_alive()
+// 	for {
+// 		num_alive := room.run_alive()
 
-		// when the winner dc before annoucement loop -> lobby
-		if(num_alive == 0){
-			return nil
-		}
+// 		// when the winner dc before annoucement loop -> lobby
+// 		if(num_alive == 0){
+// 			return nil
+// 		}
 
-		if(num_alive == 1){
-			for i := range(room.members){
-				if room.members[i].is_alive(){
-					return room.members[i].name
-				}
-			}
-		}
+// 		if(num_alive == 1){
+// 			for i := range(room.members){
+// 				if room.members[i].is_alive(){
+// 					return room.members[i].name
+// 				}
+// 			}
+// 		}
 
-		cur_player := room.whose_turn()
+// 		cur_player := room.whose_turn()
 
-		if cur_player == nil {
-			return nil
-		}
+// 		if cur_player == nil {
+// 			return nil
+// 		}
 
-		room.announce("Turn:" + cur_player.name)
+// 		room.announce("Turn:" + cur_player.name)
 
-		player_action := room.countdown_ask(20, cur_player)
+// 		player_action := room.countdown_ask(20, cur_player)
 
-		room.announce("") // action of cur_player
+// 		room.announce("") // action of cur_player
 
-		room.announce("Challenge:" + cur_player.name)
+// 		room.announce("Challenge:" + cur_player.name)
 
-		challenger := room.countdown_ask(20, nil)
+// 		challenger := room.countdown_ask(20, nil)
 
-		if challenger != nil{
-			room.challenge(cur_player, challenger)
-		}else{
-			room.process_action(cur_player, player_action)
-		}
+// 		if challenger != nil{
+// 			room.challenge(cur_player, challenger)
+// 		}else{
+// 			room.process_action(cur_player, player_action)
+// 		}
 
-		room.turn++
-	}
-
-}
-
-func (room *Room) countdown(secs int){
-	// timer and ping everyone for each second
-}
-
-func (room *Room) find_challenger(){
-	start_index := room.turn
-
-	for i := range(room.members){
-		cur_index = (start_index + i) % len(room.members)
-	}
-}
-
-
-func (room *Room) process_action(){
-
-}
-
-func (room *Room) challenge(){
-
-}
-
-func (room *Room) whose_turn() *Player{
-	for{
-		if room.num_alive == 0 {
-			return nil
-		}
-
-		index = room.turn % len(room.members)
-
-		if(room.member[index].is_alive()){
-			return room.member[index]
-		}
-
-		room.turn++
-	}
-}
-
-
-func (room *Room) num_alive() int{
-	num_alive := 0
-
-	for i := range(room.members){
-		if room.members[i].is_alive(){
-			num_alive++
-		}
-	}
-
-	return num_alive
-}
-
-// // sending jsons over websockets?
-// func (player *Player) ask_player(player *Player, msg payload){
+// 		room.turn++
+// 	}
 
 // }
 
+// func (room *Room) countdown(secs int){
+// 	// timer and ping everyone for each second
+// }
 
-// lobby stage
-func (room *Room) run_lobby() {
-	for {
-		message := <-room.recieve
+// func (room *Room) find_challenger(){
+// 	start_index := room.turn
 
-		if(message == "start"){
-			room.announce("Game Start")
-			return
-		}
-
-		room.announce(message)
-	}
+// 	for i := range(room.members){
+// 		cur_index = (start_index + i) % len(room.members)
+// 	}
+	return nil
 }
+
+
+// func (room *Room) process_action(){
+
+// }
+
+// func (room *Room) challenge(){
+
+// }
+
+// func (room *Room) whose_turn() *Player{
+// 	for{
+// 		if room.num_alive == 0 {
+// 			return nil
+// 		}
+
+// 		index = room.turn % len(room.members)
+
+// 		if(room.member[index].is_alive()){
+// 			return room.member[index]
+// 		}
+
+// 		room.turn++
+// 	}
+// }
+
+
+// func (room *Room) num_alive() int{
+// 	num_alive := 0
+
+// 	for i := range(room.members){
+// 		if room.members[i].is_alive(){
+// 			num_alive++
+// 		}
+// 	}
+
+// 	return num_alive
+// }
+
+// ===================================

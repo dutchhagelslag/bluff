@@ -9,14 +9,12 @@ import (
 )
 
 type Player struct {
-	room *Room
-
-	conn *websocket.Conn
-	// send chan RoomReq
-	send chan []byte
+	room *Room              `json:"-"`
+	conn *websocket.Conn    `json:"-"`
+	send chan []byte        `json:"-"`
 
     cards [2]Card
-
+	rdy bool
     name string
     coins int
 }
@@ -50,10 +48,10 @@ func init_player(name string, conn *websocket.Conn) *Player{
 		room: nil,
 		conn: conn,
 		send: make(chan []byte),
-		// send: make(chan RoomReq),
 		name: name,
 		cards: [2]Card{},
 		coins: 2,
+		rdy: false,
 	}
 	// Allow collection of memory referenced by the caller by doing all work in
 	// new goroutines.
@@ -71,8 +69,6 @@ func (player *Player) lose_card(lost_card Card){
 func (player *Player) is_alive() bool{
 	return (player.cards[0] != Dead) && (player.cards[1] != Dead)
 }
-
-
 
 // readPump pumps messages from the websocket connection to the hub.
 //
@@ -98,7 +94,7 @@ func (player *Player) readPump() {
 			break
 		}
 		message = bytes.TrimSpace(bytes.Replace(message, newline, space, -1))
-		player.room.recieve <- message
+		player.room.receive <- message
 	}
 }
 

@@ -102,6 +102,10 @@ func join_room(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 
 	player_name := ps.ByName("player_name")
 
+	if string(player_name)[0] == '!'{
+		fmt.Fprintf(w, "Invalid player name: cant start with !")
+	}
+
 	new_player := init_player(player_name, conn)
 
 	room.add(new_player)
