@@ -9,14 +9,14 @@ import (
 )
 
 type Player struct {
-	room *Room              `json:"-"`
-	conn *websocket.Conn    `json:"-"`
-	send chan []byte        `json:"-"`
+	Room *Room              `json:"-"`
+	Conn *websocket.Conn    `json:"-"`
+	Send chan []byte        `json:"-"`
+	Rdy bool                `json:"-"`
 
-    cards [2]Card
-	rdy bool
-    name string
-    coins int
+    Cards [2]Card
+    Name string
+    Coins int
 }
 
 const (
@@ -45,13 +45,13 @@ var upgrader = websocket.Upgrader{
 
 func init_player(name string, conn *websocket.Conn) *Player{
 	new_player := &Player{
-		room: nil,
-		conn: conn,
-		send: make(chan []byte),
-		name: name,
-		cards: [2]Card{},
-		coins: 2,
-		rdy: false,
+		Room: nil,
+		Conn: conn,
+		Send: make(chan []byte),
+		Name: name,
+		Cards: [2]Card{},
+		Coins: 2,
+		Rdy: false,
 	}
 	// Allow collection of memory referenced by the caller by doing all work in
 	// new goroutines.
@@ -67,7 +67,7 @@ func (player *Player) lose_card(lost_card Card){
 }
 
 func (player *Player) is_alive() bool{
-	return (player.cards[0] != Dead) && (player.cards[1] != Dead)
+	return (player.Cards[0] != Dead) && (player.Cards[1] != Dead)
 }
 
 // readPump pumps messages from the websocket connection to the hub.
@@ -77,16 +77,16 @@ func (player *Player) is_alive() bool{
 // reads from this goroutine.
 func (player *Player) readPump() {
 	defer func() {
-		player.room.remove(player.name)
-		player.conn.Close()
+		player.Room.remove(player.Name)
+		player.Conn.Close()
 	}()
 
-	player.conn.SetReadLimit(maxMessageSize)
-	player.conn.SetReadDeadline(time.Now().Add(pongWait))
-	player.conn.SetPongHandler(func(string) error { player.conn.SetReadDeadline(time.Now().Add(pongWait)); return nil })
+	player.Conn.SetReadLimit(maxMessageSize)
+	player.Conn.SetReadDeadline(time.Now().Add(pongWait))
+	player.Conn.SetPongHandler(func(string) error { player.Conn.SetReadDeadline(time.Now().Add(pongWait)); return nil })
 
 	for {
-		_, message, err := player.conn.ReadMessage()
+		_, message, err := player.Conn.ReadMessage()
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
 				log.Printf("error: %v", err)
@@ -94,7 +94,7 @@ func (player *Player) readPump() {
 			break
 		}
 		message = bytes.TrimSpace(bytes.Replace(message, newline, space, -1))
-		player.room.receive <- message
+		player.Room.Receive <- message
 	}
 }
 
@@ -107,30 +107,30 @@ func (player *Player) writePump() {
 	ticker := time.NewTicker(pingPeriod)
 	defer func() {
 		ticker.Stop()
-		player.room.remove(player.name)
-		player.conn.Close()
+		player.Room.remove(player.Name)
+		player.Conn.Close()
 	}()
 	for {
 		select {
-		case message, ok := <-player.send:
-			player.conn.SetWriteDeadline(time.Now().Add(writeWait))
+		case message, ok := <-player.Send:
+			player.Conn.SetWriteDeadline(time.Now().Add(writeWait))
 			if !ok {
 				// Players been kicked
-				player.conn.WriteMessage(websocket.CloseMessage, []byte{})
+				player.Conn.WriteMessage(websocket.CloseMessage, []byte{})
 				return
 			}
 
-			w, err := player.conn.NextWriter(websocket.TextMessage)
+			w, err := player.Conn.NextWriter(websocket.TextMessage)
 			if err != nil {
 				return
 			}
 			w.Write(message)
 
 			// Add queued chat messages to the current websocket message.
-			n := len(player.send)
+			n := len(player.Send)
 			for i := 0; i < n; i++ {
 				w.Write(newline)
-				w.Write(<-player.send)
+				w.Write(<-player.Send)
 			}
 
 			if err := w.Close(); err != nil {
@@ -138,8 +138,8 @@ func (player *Player) writePump() {
 			}
 
 		case <-ticker.C:
-			player.conn.SetWriteDeadline(time.Now().Add(writeWait))
-			if err := player.conn.WriteMessage(websocket.PingMessage, nil); err != nil {
+			player.Conn.SetWriteDeadline(time.Now().Add(writeWait))
+			if err := player.Conn.WriteMessage(websocket.PingMessage, nil); err != nil {
 				return
 			}
 

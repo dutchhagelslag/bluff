@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"errors"
     // "fmt"
     "time"
 	// "strconv"
@@ -23,9 +22,9 @@ const(
 
 // randomly determine cards for players
 func draw_cards(room *Room){
-	for i := 0 ; i < len(room.members) ; i++ {
-		room.members[i].cards[0] = get_random_card(room.deck)
-		room.members[i].cards[1] = get_random_card(room.deck)
+	for i := 0 ; i < len(room.Members) ; i++ {
+		room.Members[i].Cards[0] = get_random_card(room.Deck)
+		room.Members[i].Cards[1] = get_random_card(room.Deck)
 	}
 }
 

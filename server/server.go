@@ -10,7 +10,7 @@ import (
 func init_game(lobby *Room){
 	// change mode of hub
 	draw_cards(lobby)
-	lobby.turn += 1
+	lobby.Turn += 1
 }
 
 // make proper ids later
@@ -39,26 +39,26 @@ func print_rooms(action string){
 		room_output := ""
 		hands := " || hands: "
 
-		room_output += "Host: " + body.members[0].name + " || Members:"
-		for i := range body.members{
-			room_output += " " + body.members[i].name
+		room_output += "Host: " + body.Members[0].Name + " || Members:"
+		for i := range body.Members{
+			room_output += " " + body.Members[i].Name
 		}
-		for i := range body.members{
-			hands += " " + body.members[i].name + ": "
-			hands += card_to_str(body.members[i].cards[0]) + " and "
-			hands += card_to_str(body.members[i].cards[1]) + "||"
+		for i := range body.Members{
+			hands += " " + body.Members[i].Name + ": "
+			hands += body.Members[i].Cards[0].String() + " and "
+			hands += body.Members[i].Cards[1].String() + "||"
 		}
 
-		// room_output["players"] = body.owner.name + room_mems
+		// room_output["players"] = body.owner.Name + room_mems
 
 		// a, _ := json.Marshal(room_output)
 
-		deck, _ := json.MarshalIndent(body.deck, "", " ")
+		deck, _ := json.MarshalIndent(body.Deck, "", " ")
 		fmt.Println(string(deck))
 
 		m[key.(int)] = string(room_output + hands)
-		fmt.Println("LobbyLen: " + strconv.Itoa(len(body.members)))
-		fmt.Println("LobbyCap: " + strconv.Itoa(cap(body.members)))
+		fmt.Println("LobbyLen: " + strconv.Itoa(len(body.Members)))
+		fmt.Println("LobbyCap: " + strconv.Itoa(cap(body.Members)))
 
 		return true
 	})

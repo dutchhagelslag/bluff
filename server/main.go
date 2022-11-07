@@ -41,7 +41,7 @@ func rm(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 
 	room := room_void.(*Room)
 
-	fmt.Println(room.id)
+	fmt.Println(room.Id)
 	fmt.Println(player)
 
 	room.remove(player)
@@ -77,7 +77,6 @@ func create_room(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	new_player := init_player(host_name, conn)
 
 	new_room.add(new_player)
-
 	print_rooms("create room")
 	return
 }
@@ -103,7 +102,7 @@ func join_room(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	player_name := ps.ByName("player_name")
 
 	if string(player_name)[0] == '!'{
-		fmt.Fprintf(w, "Invalid player name: cant start with !")
+		fmt.Println("Invalid player name: cant start with !")
 	}
 
 	new_player := init_player(player_name, conn)
@@ -114,7 +113,6 @@ func join_room(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	// 	return
 	// }
 
-	w.WriteHeader(http.StatusOK)
 	print_rooms("join_room")
 }
 
