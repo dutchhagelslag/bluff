@@ -109,11 +109,11 @@ func (room *Room) run() {
 	for {
 		room.run_lobby()
 
-		// if winner := Room.run_game(); winner != nil{
-		// 	Room.announce()
-		// }else{
-		// 	Room.announce()
-		// }
+		if winner := room.run_game(); winner != nil{
+			room.announce_state()
+		}else{
+			room.announce_state()
+		}
 	}
 }
 
@@ -122,7 +122,6 @@ func (room *Room) run() {
 func (room *Room) run_lobby() {
 	for {
 		if(room.is_room_rdy()){
-			room.announce_state()
 			return
 		}
 
@@ -185,100 +184,77 @@ func (Room *Room) announce_state(){
 	}
 }
 
-func (Room *Room) run_game() *Player{
+func (room *Room) run_game() *Player{
 
-// 	for {
-// 		num_alive := Room.run_alive()
+	for {
+		num_alive := room.players_left()
 
-// 		// when the winner dc before annoucement loop -> lobby
-// 		if(num_alive == 0){
-// 			return nil
-// 		}
+		// when the winner dc before annoucement loop -> lobby
+		if(num_alive == 0){
+			return nil
+		}
 
-// 		if(num_alive == 1){
-// 			for i := range(Room.Members){
-// 				if Room.Members[i].is_alive(){
-// 					return Room.Members[i].Name
-// 				}
-// 			}
-// 		}
+		if(num_alive == 1){
+			for _, member := range(room.Members){
+				if member.is_alive(){
+					return member
+				}
+			}
+		}
 
-// 		cur_player := Room.whose_turn()
+		cur_player := room.whose_turn()
 
-// 		if cur_player == nil {
-// 			return nil
-// 		}
+		if cur_player == nil {
+			return nil
+		}
 
-// 		Room.announce("Turn:" + cur_player.Name)
+		room.announce("Turn:" + cur_player.Name)
 
-// 		player_action := Room.countdown_ask(20, cur_player)
+		player_action := room.countdown_ask(20, cur_player)
 
-// 		Room.announce("") // action of cur_player
+		room.announce("") // action of cur_player
 
-// 		Room.announce("Challenge:" + cur_player.Name)
+		room.announce("Challenge:" + cur_player.Name)
 
-// 		challenger := Room.countdown_ask(20, nil)
+		challenger := room.countdown_ask(20, nil)
 
-// 		if challenger != nil{
-// 			Room.challenge(cur_player, challenger)
-// 		}else{
-// 			Room.process_action(cur_player, player_action)
-// 		}
+		if challenger != nil{
+			room.challenge(cur_player, challenger)
+		}else{
+			room.process_action(cur_player, player_action)
+		}
 
-// 		Room.turn++
-// 	}
+		room.Turn++
+	}
 
-// }
+}
 
-// func (Room *Room) countdown(secs int){
-// 	// timer and ping everyone for each second
-// }
+func (room *Room) players_left() int{
+	alive := 0
+	for _, member := range(room.Members){
+		if member.is_alive(){
+			alive++
+		}
+	}
+	return alive
+}
 
-// func (Room *Room) find_challenger(){
-// 	start_index := Room.turn
-
-// 	for i := range(Room.Members){
-// 		cur_index = (start_index + i) % len(Room.Members)
-// 	}
-	return nil
+func (room *Room) countdown(secs int){
+	// timer and ping everyone for each second
 }
 
 
-// func (Room *Room) process_action(){
+func (room *Room) whose_turn() *Player{
+	for{
+		if room.players_left() == 0 {
+			return nil
+		}
 
-// }
+		index := room.Turn % len(room.Members)
+		room.Turn++
 
-// func (Room *Room) challenge(){
-
-// }
-
-// func (Room *Room) whose_turn() *Player{
-// 	for{
-// 		if Room.num_alive == 0 {
-// 			return nil
-// 		}
-
-// 		index = Room.turn % len(Room.Members)
-
-// 		if(Room.member[index].is_alive()){
-// 			return Room.member[index]
-// 		}
-
-// 		Room.turn++
-// 	}
-// }
-
-
-// func (Room *Room) num_alive() int{
-// 	num_alive := 0
-
-// 	for i := range(Room.Members){
-// 		if Room.Members[i].is_alive(){
-// 			num_alive++
-// 		}
-// 	}
-
-// 	return num_alive
-// }
-
-// ===================================
+		if(room.Members[index].is_alive()){
+			return room.Members[index]
+		}
+	}
+}
