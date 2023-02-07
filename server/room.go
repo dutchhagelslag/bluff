@@ -10,20 +10,19 @@ import(
 )
 
 type Room struct{
-    Members []*Player
-	State string 	// lobby, ingame, get-action, get-bluff-call
-    Turn int
-    Id int                    `json:"id"`
+   Members []*Player
+   State string 	// lobby, ingame, get-action, get-bluff-call
+   Turn int
+   Id int                    `json:"id"`
 
-    Deck map[Card]int         `json:"-"`
-	Join chan *Player         `json:"-"`
+   Deck map[Card]int         `json:"-"`
+   Join chan *Player         `json:"-"`
 
-	// recieve PlayerResp
-	Receive chan []byte       `json:"-"`
-	Members_mut sync.Mutex    `json:"-"`
+   Receive chan []byte       `json:"-"`
+   Members_mut sync.Mutex    `json:"-"`
 }
 
-// make a new Room
+
 func init_room(room_id int) *Room{
 	new_room := Room{
 		Members: make([]*Player, 0, 6),
@@ -208,15 +207,17 @@ func (room *Room) run_game() *Player{
 			return nil
 		}
 
-		room.announce("Turn:" + cur_player.Name)
+		// announce whose turn it is
+		room.announce_state()
 
-		player_action := room.countdown_ask(20, cur_player)
+		// ask action player to choose an action
+		player_action := room.ask("get-action", cur_player)
 
 		room.announce("") // action of cur_player
 
 		room.announce("Challenge:" + cur_player.Name)
 
-		challenger := room.countdown_ask(20, nil)
+		// challenger := room.countdown_ask(20, nil)
 
 		if challenger != nil{
 			room.challenge(cur_player, challenger)
@@ -229,6 +230,24 @@ func (room *Room) run_game() *Player{
 
 }
 
+func (room *Room) ask(action string, player *Player) Action{
+	ask_json, _ := json.Marshal(
+		struct{
+			State string
+		} {
+			action,
+		},
+	)
+	player.Send<-ask_json
+
+	resp := <- player.Send
+
+
+
+	return
+}
+
+
 func (room *Room) players_left() int{
 	alive := 0
 	for _, member := range(room.Members){
@@ -238,11 +257,6 @@ func (room *Room) players_left() int{
 	}
 	return alive
 }
-
-func (room *Room) countdown(secs int){
-	// timer and ping everyone for each second
-}
-
 
 func (room *Room) whose_turn() *Player{
 	for{

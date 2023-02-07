@@ -2,23 +2,43 @@ package main
 
 import (
 	"encoding/json"
-    // "fmt"
-    "time"
+	// "fmt"
+	"time"
 	// "strconv"
-    "math/rand"
+	"math/rand"
 )
 
 type Id    string
 type Card int8
 
 const(
-    Dead Card = iota
-    Duke
-    Assasin
-    Contessa
-    Captain
-    Ambassador
+	Dead Card = iota
+	Duke
+	Assasin
+	Contessa
+	Captain
+	Ambassador
 )
+
+type Action int8
+
+const(
+	SafeCoin Action = iota
+	TwoCoin
+
+	CashIn
+
+	ThreeCoin
+	BlockDouble
+
+	Assasinate
+
+	BlockAssasinate
+
+	Steal
+	BlockSteal
+)
+
 
 // randomly determine cards for players
 func draw_cards(room *Room){
@@ -60,28 +80,28 @@ func (card Card) MarshalJSON() ([]byte, error) {
 	return json.Marshal(card.String())
 }
 
-// Stringer
+// Stringers
 func (card Card) String() string{
 	switch card{
 		case Dead:
-     		return "Dead"
+    		return "Dead"
 
 		case Duke:
-		    return "Duke"
+			return "Duke"
 
 		case Captain:
-		    return "Captain"
+			return "Captain"
 
 		case Ambassador:
-		    return "Ambassador"
+			return "Ambassador"
 
 		case Contessa:
-		    return "Contessa"
+			return "Contessa"
 
 		case Assasin:
 			return "Assasin"
 
 		default:
-		    return ""
+			return ""
 	}
 }
