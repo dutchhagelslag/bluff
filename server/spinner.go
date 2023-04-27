@@ -1,4 +1,4 @@
-package spinner
+package main
 
 import (
     "fmt"
@@ -6,7 +6,7 @@ import (
     "time"
 )
 
-func Spin(c chan string){
+func spin(c chan string){
     current := 0
     speed := time.Duration(300) // ms
 

@@ -211,19 +211,19 @@ func (room *Room) run_game() *Player{
 		room.announce_state()
 
 		// ask action player to choose an action
-		player_action := room.ask("get-action", cur_player)
+		// player_action := room.ask("get-action", cur_player)
 
-		room.announce("") // action of cur_player
+		// room.announce("") // action of cur_player
 
-		room.announce("Challenge:" + cur_player.Name)
+		// room.announce("Challenge:" + cur_player.Name)
 
 		// challenger := room.countdown_ask(20, nil)
 
-		if challenger != nil{
-			room.challenge(cur_player, challenger)
-		}else{
-			room.process_action(cur_player, player_action)
-		}
+		// if challenger != nil{
+		// 	room.challenge(cur_player, challenger)
+		// }else{
+		// 	room.process_action(cur_player, player_action)
+		// }
 
 		room.Turn++
 	}
@@ -240,11 +240,11 @@ func (room *Room) ask(action string, player *Player) Action{
 	)
 	player.Send<-ask_json
 
-	resp := <- player.Send
+	// resp := <- player.Send
 
 
 
-	return
+	return Action(3)
 }
 
 

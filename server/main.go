@@ -3,30 +3,56 @@ package main
 import (
     "strconv"
 	"fmt"
-	"bluff/server/spinner"
     "github.com/julienschmidt/httprouter"
     "log"
     "net/http"
 	"sync"
+	"html/template"
+	"os"
 )
 
 var all_rooms sync.Map
 
+type Page struct {
+	Title string
+	Body []byte
+}
+
+func (p *Page) save() error {
+	filename := p.Title + ".txt"
+	return os.WriteFile(filename, p.Body, 0600)
+}
+
+func load(title string) (*Page, error) {
+	filename := title + ".txt"
+	body, err := os.ReadFile(filename)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Page{Title: title, Body: body}, nil
+}
+
 func main(){
     health_check := make(chan string)
 
-    go spinner.Spin(health_check)
+    go spin(health_check)
 
     router := httprouter.New()
-    router.GET("/create_room/:player_name", create_room)
-    router.GET("/join_room/:room_id/:player_name", join_room)
 
-    router.GET("/draw/:room_id", test)
-
-    router.GET("/rm/:room_id/:player_name", rm)
-
+    router.GET("/hi", testw)
+    // router.GET("/create_room/:player_name", create_room)
+    // router.GET("/join_room/:room_id/:player_name", join_room)
+    // router.GET("/draw/:room_id", test)
+    // router.GET("/rm/:room_id/:player_name", rm)
 
     log.Fatal(http.ListenAndServe(":8080", router))
+}
+
+func testw(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	p := &Page{Title: "test", Body: []byte("hi")}
+	t, _ := template.ParseFiles("view.html")
+	t.Execute(w,p)
 }
 
 func rm(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
@@ -34,6 +60,7 @@ func rm(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	player := ps.ByName("player_name")
 
 	room_void, ok := all_rooms.Load(id)
+
 	if !ok {
 		fmt.Println("Failed to find room")
 		return
