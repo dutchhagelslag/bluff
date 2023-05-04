@@ -2,10 +2,9 @@ package main
 
 import(
 	"testing"
+	"golang.org/x/net/websocket"
 )
 
-func TestInsertPlayer(t *testing.T){
-
-
+func ConnectToRoom(t *testing.T){
 	insert_player()
 }
