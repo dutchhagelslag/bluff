@@ -5,7 +5,6 @@ import (
 	"log"
 	"time"
 	"github.com/gorilla/websocket"
-
 )
 
 type Player struct {
@@ -14,9 +13,9 @@ type Player struct {
 	Send chan []byte        `json:"-"`
 	Rdy bool                `json:"-"`
 
-    Cards [2]Card
-    Name string
-    Coins int
+	Cards [2]Card
+	Name string
+	Coins int
 }
 
 const (

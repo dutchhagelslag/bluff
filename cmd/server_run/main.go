@@ -1,12 +1,12 @@
 package main
 
 import (
-    "strconv"
 	"fmt"
-    "github.com/julienschmidt/httprouter"
-    "log"
-    "net/http"
+	"log"
 	"sync"
+	"strconv"
+	"net/http"
+	"github.com/julienschmidt/httprouter"
 )
 
 var all_rooms sync.Map
@@ -18,18 +18,17 @@ type Page struct {
 
 
 func main(){
-    health_check := make(chan string)
+	// health_check := make(chan string)
+	// go spin(health_check)
 
-    go spin(health_check)
+	router := httprouter.New()
 
-    router := httprouter.New()
+	router.GET("/create_room/:player_name", create_room)
+	router.GET("/join_room/:room_id/:player_name", join_room)
+	router.GET("/draw/:room_id", test)
+	router.GET("/rm/:room_id/:player_name", rm)
 
-    router.GET("/create_room/:player_name", create_room)
-    router.GET("/join_room/:room_id/:player_name", join_room)
-    router.GET("/draw/:room_id", test)
-    router.GET("/rm/:room_id/:player_name", rm)
-
-    log.Fatal(http.ListenAndServe(":8080", router))
+	log.Fatal(http.ListenAndServe(":8080", router))
 }
 
 
