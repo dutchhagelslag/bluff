@@ -7,6 +7,7 @@ import(
 	"errors"
 	"sync"
 	"encoding/json"
+	"github.com/dutchhagelslag/bluff/pkg/server"
 )
 
 type Room struct{
