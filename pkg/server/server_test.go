@@ -2,7 +2,8 @@ package server
 
 import(
 	"testing"
-	"github.com/dutchhagelslag/bluff/pkg/server"
+	"bluff/pkg/server"
+	// "github.com/dutchhagelslag/bluff/pkg/server"
 
 	// "github.com/gorilla/websocket"
 	// "github.com/julienschmidt/httprouter"

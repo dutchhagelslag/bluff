@@ -8,22 +8,17 @@ import (
 	"net/http"
 	"encoding/json"
 
+	"github.com/gofrs/uuid"
 	"github.com/julienschmidt/httprouter"
 	"github.com/dutchhagelslag/bluff/pkg/server"
 )
 
-
 var all_rooms sync.Map
-
-func init(){
-	all_rooms := sync.Map{}
-}
 
 type Page struct {
 	Title string
 	Body []byte
 }
-
 
 func run_server(){
 	router := httprouter.New()
@@ -84,7 +79,7 @@ func create_room(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		return
 	}
 
-	room_id := global_id_get()
+	room_id := uuid.Must(uuid.NewV4())
 	host_name := ps.ByName("player_name")
 
 	new_room := init_room(room_id)
@@ -161,9 +156,6 @@ func init_game(lobby *Room){
 }
 
 // make proper ids later
-var global_id_counter = 0
-var id_lock sync.Mutex
-
 func global_id_get() int {
 	id_lock.Lock()
 	global_id_counter++
