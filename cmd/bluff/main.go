@@ -1,6 +1,6 @@
 package main
 
-import 	"github.com/dutchhagelslag/bluff/pkg/server"
+import 	bluff "github.com/dutchhagelslag/bluff"
 
 func main(){
 	// health_check := make(chan string)

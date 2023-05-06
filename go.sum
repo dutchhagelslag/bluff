@@ -1,5 +1,5 @@
-github.com/dutchhagelslag/bluff v0.0.0-20230505233225-0b7486cebac5 h1:t6WT2sZqSQMEnRsb9FerlEf+aDjFTPXmFl7nsbV7OGw=
-github.com/dutchhagelslag/bluff v0.0.0-20230505233225-0b7486cebac5/go.mod h1:S9aGjpPFjhkMMit5VvvWaW/rzg7mwXXIY5e8RESMihk=
+github.com/dutchhagelslag/bluff v0.0.0-20230506111417-74bdc3257125 h1:3lml/VcXfUEJSkGZQudhOTuqrCgwvMUHrAwwMDzUxCY=
+github.com/dutchhagelslag/bluff v0.0.0-20230506111417-74bdc3257125/go.mod h1:S9aGjpPFjhkMMit5VvvWaW/rzg7mwXXIY5e8RESMihk=
 github.com/gofrs/uuid v4.4.0+incompatible h1:3qXRTX8/NbyulANqlc0lchS1gqAVxRgsuW1YrTJupqA=
 github.com/gofrs/uuid v4.4.0+incompatible/go.mod h1:b2aQJv3Z4Fp6yNu3cdSllBxTCLRxnplIgP/c0N/04lM=
 github.com/gorilla/websocket v1.5.0 h1:PPwGk2jz7EePpoHN/+ClbZu8SPxiqlu12wZP/3sWmnc=
