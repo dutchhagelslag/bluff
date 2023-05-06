@@ -10,7 +10,6 @@ import (
 
 	"github.com/gofrs/uuid"
 	"github.com/julienschmidt/httprouter"
-	"github.com/dutchhagelslag/bluff/pkg/server"
 )
 
 var all_rooms sync.Map
@@ -79,10 +78,15 @@ func create_room(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		return
 	}
 
-	room_id := uuid.Must(uuid.NewV4())
+	room_id, err := uuid.NewV4()
+
+	if err != nil {
+		return // error generating uuid
+	}
 	host_name := ps.ByName("player_name")
 
-	new_room := init_room(room_id)
+	new_room := init_room(room_id.String())
+
 	new_player := init_player(host_name, conn)
 
 	new_room.add(new_player)
@@ -153,16 +157,6 @@ func init_game(lobby *Room){
 	// change mode of hub
 	draw_cards(lobby)
 	lobby.Turn += 1
-}
-
-// make proper ids later
-func global_id_get() int {
-	id_lock.Lock()
-	global_id_counter++
-	cur_id := global_id_counter
-	id_lock.Unlock()
-
-	return cur_id-1
 }
 
 // all important debug print

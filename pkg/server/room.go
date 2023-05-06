@@ -7,14 +7,13 @@ import(
 	"errors"
 	"sync"
 	"encoding/json"
-	"github.com/dutchhagelslag/bluff/pkg/server"
 )
 
 type Room struct{
    Members []*Player
    State string 	// lobby, ingame, get-action, get-bluff-call
    Turn int
-   Id int                    `json:"id"`
+   Id string                 `json:"id"`
 
    Deck map[Card]int         `json:"-"`
    Join chan *Player         `json:"-"`
@@ -24,7 +23,7 @@ type Room struct{
 }
 
 
-func init_room(room_id int) *Room{
+func init_room(room_id string) *Room{
 	new_room := Room{
 		Members: make([]*Player, 0, 6),
 		Turn: 0,

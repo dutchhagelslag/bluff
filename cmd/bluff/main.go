@@ -1,6 +1,5 @@
 package main
 
-// import "bluff"
 import 	"github.com/dutchhagelslag/bluff/pkg/server"
 
 func main(){
