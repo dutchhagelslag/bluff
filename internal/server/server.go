@@ -19,7 +19,7 @@ type Page struct {
 	Body []byte
 }
 
-func run_server(){
+func Run_server(){
 	router := httprouter.New()
 
 	router.GET("/mping", mping)
