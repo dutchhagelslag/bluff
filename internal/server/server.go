@@ -19,23 +19,28 @@ type Page struct {
 	Body []byte
 }
 
-func Run_server(){
+func RunServer(){
+	health_check := make(chan string) // does nothing for now, cause failure in future
+	go spin(health_check)
+	log.Fatal(http.ListenAndServe(":8080", ServerHandler()))
+}
+
+func ServerHandler() *httprouter.Router{
 	router := httprouter.New()
 
 	router.GET("/mping", mping)
 
-	// router.GET("/create_room/:player_name", create_room)
-	// router.GET("/join_room/:room_id/:player_name", join_room)
-	// router.GET("/draw/:room_id", test)
-	// router.GET("/rm/:room_id/:player_name", rm)
+	router.GET("/create_room/:player_name", create_room)
+	router.GET("/join_room/:room_id/:player_name", join_room)
+	router.GET("/draw/:room_id", test)
+	router.GET("/rm/:room_id/:player_name", rm)
 
-	log.Fatal(http.ListenAndServe(":8080", router))
+	return router
 }
 
 func mping(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	fmt.Fprint(w, "learning something i suppose")
 }
-
 func rm(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	id, _ := strconv.Atoi(ps.ByName("room_id"))
 	player := ps.ByName("player_name")
@@ -164,7 +169,7 @@ func print_rooms(action string){
 	fmt.Println("======================================================================")
 	fmt.Println(action)
 
-	m := map[int]interface{}{}
+	m := map[string]interface{}{}
 
 	all_rooms.Range(func(key, value interface{}) bool {
 		body := value.(*Room)
@@ -188,7 +193,7 @@ func print_rooms(action string){
 		deck, _ := json.MarshalIndent(body.Deck, "", " ")
 		fmt.Println(string(deck))
 
-		m[key.(int)] = string(room_output + hands)
+		m[key.(string)] = string(room_output + hands)
 		fmt.Println("LobbyLen: " + strconv.Itoa(len(body.Members)))
 		fmt.Println("LobbyCap: " + strconv.Itoa(cap(body.Members)))
 
