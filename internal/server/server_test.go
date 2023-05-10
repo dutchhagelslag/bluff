@@ -15,15 +15,17 @@ func TestLobby(t *testing.T){
 	// setup server
 	go RunServer()
 
-	// var roomID string
+	var roomID string
 
-	var wg sync.WaitGroup
-	wg.Add(1)
+	var postLobby sync.WaitGroup
+	var postCreate sync.WaitGroup
+
+	postLobby.Add(3) // the number of t.Run's - 1
+	postCreate.Add(1)
 
 
-
-	t.Run("create new lobby", func(t *testing.T) {
-		defer fmt.Println("created new lobby")
+	go t.Run("create new lobby", func(t *testing.T) {
+		defer fmt.Println("closing test lobby")
 
 		path := "/create_room/tester"
 		fmt.Println(path)
@@ -44,28 +46,29 @@ func TestLobby(t *testing.T){
 			t.Errorf("Error receiving message from server:")
 		}
 		log.Println("Room ID:", string(message))
-		// roomID = string(message)
+		roomID = string(message)
 
+		postCreate.Done()
+		postLobby.Wait()
 	})
 
 
-
-
 	t.Run("join lobby", func(t *testing.T) {
-		wg.Wait()
-		// path := fmt.Sprintf("/join_room/%s/patrick", roomID)
-		// fmt.Println(path)
+		defer postLobby.Done()
 
-		fmt.Println("hihih")
+		postCreate.Wait()
 
-		// u := url.URL{Scheme: "ws", Host: "localhost:8080", Path: path}
+		path := fmt.Sprintf("/join_room/%s/patrick", roomID)
+		fmt.Println(path)
 
-		// conn, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
-		// if err != nil {
-		// 	t.Errorf("Failed creating websocket client")
-		// }
+		u := url.URL{Scheme: "ws", Host: "localhost:8080", Path: path}
 
-		// defer conn.Close()
+		conn, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
+		if err != nil {
+			t.Errorf("Failed creating websocket client")
+		}
+
+		defer conn.Close()
 	})
 
 
