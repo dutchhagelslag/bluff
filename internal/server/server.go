@@ -7,8 +7,8 @@ import (
 	"strconv"
 	"net/http"
 	"encoding/json"
-
 	"github.com/gofrs/uuid"
+	"github.com/gorilla/websocket"
 	"github.com/julienschmidt/httprouter"
 )
 
@@ -83,24 +83,30 @@ func create_room(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		return
 	}
 
-	room_id, err := uuid.NewV4()
+	roomID, err := uuid.NewV4()
 
 	if err != nil {
 		return // error generating uuid
 	}
-	host_name := ps.ByName("player_name")
+	hostName := ps.ByName("player_name")
 
-	new_room := init_room(room_id.String())
+	newRoom := init_room(roomID.String())
 
-	new_player := init_player(host_name, conn)
+	newPlayer := init_player(hostName, conn)
 
-	new_room.add(new_player)
+	newRoom.add(newPlayer)
 	print_rooms("create room")
+
+	err = conn.WriteMessage(websocket.TextMessage, []byte(roomID.String()))
+	if err != nil {
+		log.Fatal("Error sending message to WebSocket server:", err)
+	}
+
 	return
 }
 
 func join_room(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	id, _ := strconv.Atoi(ps.ByName("room_id"))
+	id := ps.ByName("room_id")
 
 	room_void, ok := all_rooms.Load(id)
 
@@ -119,13 +125,14 @@ func join_room(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 
 	player_name := ps.ByName("player_name")
 
-	if string(player_name)[0] == '!'{
-		fmt.Println("Invalid player name: cant start with !")
-	}
+	// if string(player_name)[0] == '!'{
+	// 	fmt.Println("Invalid player name: cant start with !")
+	// }
 
 	new_player := init_player(player_name, conn)
 
 	room.add(new_player)
+
 	// if err := room.add_member(new_player); err != nil{
 	// 	w.WriteHeader(http.StatusConflict)
 	// 	return
